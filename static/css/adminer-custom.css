@@ -1,0 +1,346 @@
+/* Adminer Dark Theme - Matching Penny Stocks App */
+
+/* CSS Variables for consistency */
+:root {
+    --theme-color: #42b883;
+    --theme-color-secondary: #369870;
+    --theme-color-light: rgba(66, 184, 131, 0.1);
+    --bg-color: #0f172a;
+    --bg-color-secondary: #1e293b;
+    --text-color: #e2e8f0;
+    --text-color-secondary: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color-light: rgba(255, 255, 255, 0.05);
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --success-color: #10b981;
+}
+
+/* NUCLEAR OVERRIDE - Force dark theme with maximum specificity */
+html *, body *, html, body, 
+body.adminer, body.ltr, body.nojs, body.adminer.ltr, body.adminer.nojs, body.ltr.nojs, body.adminer.ltr.nojs,
+.adminer, .ltr, .nojs {
+    background: #0f172a !important;
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Override CSS variables at root level */
+:root {
+    --bg: #0f172a !important;
+    --fg: #e2e8f0 !important;
+    --dim: #1e293b !important;
+    --lit: #334155 !important;
+}
+
+/* Force override every background and text color in the entire page */
+* {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* Specific Adminer elements */
+h1, h2, h3, h4, h5, h6 {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+table, td, th, tr {
+    background: #0f172a !important;
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+input, select, textarea, button {
+    background: #1e293b !important;
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Header and navigation */
+#menu {
+    background: var(--bg-color-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 1rem !important;
+}
+
+#menu h1 {
+    color: var(--theme-color) !important;
+    font-weight: 600;
+    margin: 0;
+}
+
+#menu a {
+    color: var(--text-color-secondary) !important;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+#menu a:hover {
+    color: var(--theme-color) !important;
+}
+
+/* Main content area */
+#content {
+    background: var(--bg-color) !important;
+    padding: 2rem !important;
+    min-height: calc(100vh - 60px);
+}
+
+/* Form elements */
+input[type="text"], 
+input[type="password"], 
+input[type="email"], 
+input[type="number"], 
+textarea, 
+select {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    color: var(--text-color) !important;
+    padding: 0.5rem 0.75rem !important;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--theme-color) !important;
+    box-shadow: 0 0 0 2px rgba(66, 184, 131, 0.2) !important;
+    outline: none !important;
+}
+
+/* Buttons */
+input[type="submit"],
+input[type="button"],
+button {
+    background: var(--theme-color) !important;
+    border: 1px solid var(--theme-color) !important;
+    border-radius: 6px !important;
+    color: white !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+input[type="submit"]:hover,
+input[type="button"]:hover,
+button:hover {
+    background: var(--theme-color-secondary) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 184, 131, 0.3);
+}
+
+/* Tables */
+table {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    overflow: hidden;
+    width: 100%;
+}
+
+th {
+    background: var(--theme-color-light) !important;
+    color: var(--theme-color) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0.75rem !important;
+    font-weight: 600;
+    text-align: left;
+}
+
+td {
+    background: rgba(255, 255, 255, 0.01) !important;
+    border-bottom: 1px solid var(--border-color-light) !important;
+    color: var(--text-color) !important;
+    padding: 0.75rem !important;
+}
+
+tr:hover td {
+    background: rgba(66, 184, 131, 0.05) !important;
+}
+
+tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.015) !important;
+}
+
+tr:nth-child(even):hover td {
+    background: rgba(66, 184, 131, 0.08) !important;
+}
+
+/* Links */
+a {
+    color: var(--theme-color) !important;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--theme-color-secondary) !important;
+    text-decoration: underline;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--theme-color) !important;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+/* Code and pre elements */
+code, pre {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 4px !important;
+    color: var(--theme-color) !important;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+pre {
+    padding: 1rem !important;
+    overflow-x: auto;
+}
+
+code {
+    padding: 0.25rem 0.5rem !important;
+}
+
+/* Status messages */
+.message {
+    background: var(--theme-color-light) !important;
+    border: 1px solid var(--theme-color) !important;
+    border-radius: 6px !important;
+    color: var(--theme-color) !important;
+    padding: 0.75rem !important;
+    margin: 1rem 0 !important;
+}
+
+.error {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: var(--danger-color) !important;
+    color: var(--danger-color) !important;
+}
+
+.warning {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border-color: var(--warning-color) !important;
+    color: var(--warning-color) !important;
+}
+
+/* Sidebar and navigation elements */
+#dbs {
+    background: var(--bg-color-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    padding: 1rem !important;
+}
+
+#dbs a {
+    display: block;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+#dbs a:hover {
+    background: var(--theme-color-light) !important;
+    text-decoration: none;
+}
+
+/* Fieldsets */
+fieldset {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    margin: 1rem 0 !important;
+    padding: 1rem !important;
+}
+
+legend {
+    background: var(--bg-color) !important;
+    color: var(--theme-color) !important;
+    font-weight: 600;
+    padding: 0 0.5rem !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--theme-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-color-secondary);
+}
+
+/* Login form specific styling */
+.login {
+    max-width: 400px;
+    margin: 4rem auto;
+    padding: 2rem;
+    background: var(--bg-color-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--theme-color) !important;
+}
+
+.login table {
+    width: 100%;
+    border: none !important;
+    background: transparent !important;
+}
+
+.login table td {
+    border: none !important;
+    background: transparent !important;
+    padding: 0.5rem 0 !important;
+}
+
+.login table tr:hover td {
+    background: transparent !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #content {
+        padding: 1rem !important;
+    }
+    
+    table {
+        font-size: 0.9rem;
+    }
+    
+    th, td {
+        padding: 0.5rem !important;
+    }
+    
+    .login {
+        margin: 2rem 1rem;
+        padding: 1.5rem;
+    }
+}

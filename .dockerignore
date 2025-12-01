@@ -1,0 +1,60 @@
+# VCS / metadata
+.git
+.gitignore
+.gitattributes
+
+# Python junk
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.mypy_cache/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Node / front-end
+node_modules/
+react/
+dist/
+build/
+
+# Data & logs
+*.log
+logs/
+tmp/
+temp/
+cache/
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.zip
+*.gz
+*.bz2
+*.xz
+*.lz4
+*.zst
+*.db
+*.sqlite
+data/
+datasets/
+uploads/
+downloads/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Docker
+Dockerfile~*
+*~      # editor backups
+
+# Anything outside service scope
+../
+../../

@@ -1,0 +1,26 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    init: true
+    restart: unless-stopped
+    container_name: nginx
+    environment:
+      DNS_DOMAIN_NAME: ${DNS_DOMAIN_NAME:-localhost}
+      HOST_LAN_IP: ${HOST_LAN_IP}
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ../react/static/css:/var/www/css:ro
+      - ./static/html:/var/www/html:ro
+      - ./static/icons:/var/www/icons:ro
+    command: >
+      /bin/sh -c
+      "envsubst '$$DNS_DOMAIN_NAME $$HOST_LAN_IP' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    networks:
+      - penny-net
+    ports:
+      - "5001:80"
+
+networks:
+  penny-net:
+    external: true
+

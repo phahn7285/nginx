@@ -1,0 +1,1060 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    
+    # WebSocket connection upgrade mapping
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+    }
+
+    
+    upstream kafka-ui {
+        server kafka-ui:8080;
+    }
+    
+    upstream dbadmin {
+        server dbadmin:8080;
+    }
+    
+    upstream grafana {
+        server grafana:3000;
+    }
+    
+    upstream prometheus {
+        server prometheus:9090;
+    }
+    
+    upstream loki {
+        server loki:3100;
+    }
+    
+    upstream cadvisor {
+        server cadvisor:8080;
+    }
+    
+    upstream node-exporter {
+        server node-exporter:9100;
+    }
+    
+    upstream promtail {
+        server promtail:9080;
+    }
+    
+    upstream kafka {
+        server kafka:9092;
+    }
+    
+    upstream mysql-exporter {
+        server mysql-exporter:9104;
+    }
+    
+    upstream docker-api {
+        server docker-api:8000;
+    }
+    
+    upstream polygonio {
+        server polygonio:5001;
+    }
+
+    # Enable gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml;
+
+    # MIME types
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Logging
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+    
+    # Enhanced logging format with correlation ID for tracing
+    log_format trace '$remote_addr - $remote_user [$time_local] "$request" '
+                     '$status $body_bytes_sent "$http_referer" '
+                     '"$http_user_agent" "$http_x_forwarded_for" '
+                     'correlation_id="$http_x_correlation_id" '
+                     'response_correlation_id="$upstream_http_x_correlation_id" '
+                     'request_time=$request_time '
+                     'upstream_response_time=$upstream_response_time';
+
+    access_log /var/log/nginx/access.log trace;
+    error_log /var/log/nginx/error.log warn;
+
+    # Basic optimization
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
+    # Server configuration for DNS_DOMAIN_NAME
+    server {
+        listen 80;
+        server_name ${DNS_DOMAIN_NAME};
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval'" always;
+        
+        # Timezone headers for UI timezone detection
+        add_header X-Default-Timezone "America/Chicago" always;
+
+        # Error pages
+        error_page 404 /404.html;
+        error_page 500 502 503 504 /50x.html;
+
+        location = /404.html {
+            return 404 '404 Not Found';
+            add_header Content-Type text/plain;
+        }
+
+        location = /50x.html {
+            return 500 '500 Internal Server Error';
+            add_header Content-Type text/plain;
+        }
+
+        # CSS files - Adminer custom CSS
+        location /adminer-custom.css {
+            alias /var/www/css/adminer-custom.css;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Content-Type "text/css";
+        }
+
+        # API endpoints - General API endpoints - Proxy to kafka-api service
+        location /api/ {
+            proxy_pass http://kafka-api:8000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 60s;
+            proxy_connect_timeout 10s;
+        }
+
+        # API endpoints - Docker API endpoints - Proxy to docker-api service
+        location /api/docker/ {
+            proxy_pass http://docker-api/api/docker/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 120s;  # Longer timeout for build operations
+            proxy_connect_timeout 10s;
+        }
+
+        # API endpoints - Kafka Topics API - Proxy to kafka-api service
+        location /api/kafka-topics/ {
+            proxy_pass http://kafka-api:8000/api/kafka-topics/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 60s;
+            proxy_connect_timeout 10s;
+        }
+
+        # API endpoints - Stock Services API - Proxy to kafka-api service
+        location /api/stock-services {
+            proxy_pass http://kafka-api:8000/api/stock-services;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 60s;
+            proxy_connect_timeout 10s;
+        }
+
+        # cAdvisor - Proxy to internal service
+        location /cadvisor {
+            proxy_pass http://cadvisor/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # CSS files - Static file serving for custom CSS files
+        location /css/ {
+            alias /var/www/css/;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Access-Control-Allow-Origin "*";
+            add_header Content-Type "text/css";
+        }
+
+        # Grafana - proxy under /grafana
+        location /grafana/ {
+    	    # /grafana/login -> /login
+    	    proxy_pass http://grafana/;
+
+    	    # Forward correct host and port to Grafana
+    	    proxy_set_header Host $host:$server_port;
+    	    proxy_set_header X-Real-IP        $remote_addr;
+    	    proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
+    	    proxy_set_header X-Forwarded-Proto $scheme;
+    	    proxy_set_header X-Forwarded-Host  $host;
+    	    proxy_set_header X-Forwarded-Port  $server_port;
+    	    proxy_set_header X-Forwarded-Prefix /grafana;
+
+    	    proxy_http_version 1.1;
+    	    proxy_set_header Upgrade    $http_upgrade;
+    	    proxy_set_header Connection $connection_upgrade;
+
+            # CSS injection for custom styles
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/grafana-custom.css"></head>';
+            sub_filter_once on;
+       }
+        # Grafana health check endpoint
+        location /grafana/api/health {
+            proxy_pass http://grafana/api/health;
+            proxy_set_header Host $host:$server_port;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Health check
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        # React routing - handle health-dashboard and internal React routes
+        location ~ ^/(health-dashboard)(/.*)?$ {
+            proxy_pass http://react-app:3001;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # Icons - Static file serving for icons
+        location /icons/ {
+            alias /var/www/icons/;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Access-Control-Allow-Origin "*";
+        }
+
+        # Kafka - Proxy to internal service
+        location /kafka {
+            proxy_pass http://kafka/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Kafka UI - completely new simple approach
+        location ~ ^/kafka($|/.*) {
+            # Strip /kafka prefix and pass everything else
+            rewrite ^/kafka/?(.*)$ /$1 break;
+            
+            proxy_pass http://kafka-ui;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /kafka;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Inject our custom CSS into Kafka UI pages
+            sub_filter_types text/html application/javascript text/css;
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/kafka-custom.css"></head>';
+            
+            # Rewrite asset paths in HTML
+            sub_filter 'window.basePath = \'\';' 'window.basePath = \'/kafka\';';
+            sub_filter '="/assets/' '="/kafka/assets/';
+            sub_filter "url('/fonts/" "url('/kafka/fonts/";
+            
+            sub_filter_once off;
+        }
+
+        # CSS files - Kafka custom CSS
+        location /kafka-custom.css {
+            alias /var/www/css/kafka-custom.css;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Content-Type "text/css";
+        }
+
+        # Loki - Proxy to internal service
+        location /loki {
+            proxy_pass http://loki/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Loki API and UI for log queries
+        # Loki Admin UI - serve custom themed status page
+        location = /loki {
+            root /var/www/html;
+            try_files /loki.html =404;
+            add_header 'Cache-Control' 'no-cache, no-store, must-revalidate';
+            add_header 'Pragma' 'no-cache';
+            add_header 'Expires' '0';
+        }
+        
+        location ~ ^/loki($|/.*) {
+            # Strip /loki prefix and pass everything else
+            rewrite ^/loki/?(.*)$ /$1 break;
+            
+            proxy_pass http://loki;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /loki;
+        }
+
+        # MySQL Database Admin UI - Simple proxy to Adminer with CSS injection
+        location ~ ^/mysql($|/.*) {
+            # Strip /mysql prefix and pass everything else
+            rewrite ^/mysql/?(.*)$ /$1 break;
+            
+            proxy_pass http://dbadmin;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /mysql;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Inject our custom CSS into Adminer pages
+            sub_filter_types text/html application/javascript text/css;
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/adminer-custom.css"></head>';
+            
+            # Rewrite asset paths in HTML for Adminer
+            sub_filter '="/' '="/mysql/';
+            sub_filter "url('/" "url('/mysql/";
+            sub_filter 'href="/' 'href="/mysql/';
+            sub_filter 'src="/' 'src="/mysql/';
+            sub_filter_once off;
+        }
+
+        # MySQL Exporter - Proxy to internal service
+        location /mysql-exporter {
+            proxy_pass http://mysql-exporter/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Node Exporter - Proxy to internal service
+        location /node-exporter {
+            proxy_pass http://node-exporter/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Polygon.io Service - Proxy to internal service with comprehensive error handling
+        location ~ ^/polygonio($|/.*) {
+            # Strip /polygonio prefix and pass everything else
+            rewrite ^/polygonio/?(.*)$ /$1 break;
+            
+            proxy_pass http://polygonio;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /polygonio;
+            
+            # Pass correlation ID and request timing headers
+            proxy_set_header X-Correlation-ID $http_x_correlation_id;
+            proxy_set_header X-Request-Start $msec;
+            proxy_set_header X-Service "polygonio";
+            
+            # Proxy timeouts and buffer settings
+            proxy_connect_timeout 10s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering on;
+            proxy_buffer_size 4k;
+            proxy_buffers 8 4k;
+            proxy_busy_buffers_size 8k;
+            
+            # Error handling - map upstream errors
+            proxy_intercept_errors on;
+            error_page 502 503 504 = @polygonio_error;
+            
+            # CORS headers for API access
+            add_header Access-Control-Allow-Origin "*" always;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Content-Type, X-Correlation-ID" always;
+            
+            # Handle preflight requests
+            if ($request_method = 'OPTIONS') {
+                add_header Access-Control-Allow-Origin "*";
+                add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+                add_header Access-Control-Allow-Headers "Content-Type, X-Correlation-ID";
+                add_header Access-Control-Max-Age 86400;
+                add_header Content-Length 0;
+                add_header Content-Type text/plain;
+                return 204;
+            }
+        }
+
+        # Prometheus Monitoring Interface
+        location ~ ^/prometheus($|/.*) {
+            # Strip /prometheus prefix and pass everything else
+            rewrite ^/prometheus/?(.*)$ /$1 break;
+            
+            proxy_pass http://prometheus;
+            # Rewrite Prometheus redirects to include /prometheus prefix
+            proxy_redirect http://$host/ http://$host/prometheus/;
+            proxy_redirect http://$host/query http://$host/prometheus/query;
+            proxy_redirect http://$host/graph http://$host/prometheus/graph;
+            proxy_redirect http://localhost/ http://$host/prometheus/;
+            proxy_redirect http://localhost:9090/ http://$host/prometheus/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Prefix /prometheus;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Inject our custom CSS into Prometheus pages
+            sub_filter_types text/html application/javascript text/css application/json;
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/prometheus-custom.css"></head>';
+            
+            # Rewrite asset paths in HTML for Prometheus
+            sub_filter '="/' '="/prometheus/';
+            sub_filter "url('/" "url('/prometheus/";
+            sub_filter 'href="/' 'href="/prometheus/';
+            sub_filter 'src="/' 'src="/prometheus/';
+            sub_filter '"url":"/' '"url":"/prometheus/';
+            # Also rewrite redirects in JavaScript/JSON responses
+            sub_filter 'location.href="/' 'location.href="/prometheus/';
+            sub_filter 'window.location="/' 'window.location="/prometheus/';
+            sub_filter '"/query"' '"/prometheus/query"';
+            sub_filter '"/graph"' '"/prometheus/graph"';
+            sub_filter_once off;
+        }
+
+        # CSS files - Prometheus custom CSS
+        location /prometheus-custom.css {
+            alias /var/www/css/prometheus-custom.css;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Content-Type "text/css";
+        }
+
+        # Promtail - Proxy to internal service
+        location /promtail {
+            proxy_pass http://promtail/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Promtail Admin UI
+        location ~ ^/promtail($|/.*) {
+            # Strip /promtail prefix and pass everything else
+            rewrite ^/promtail/?(.*)$ /$1 break;
+            
+            proxy_pass http://promtail;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /promtail;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Rewrite asset paths in HTML for Promtail
+            sub_filter_types text/html application/javascript text/css;
+            sub_filter '="/' '="/promtail/';
+            sub_filter "href='/" "href='/promtail/";
+            sub_filter 'src="/' 'src="/promtail/';
+            sub_filter_once off;
+        }
+
+        # Static documentation files (docsify)
+        location /static-docs {
+            alias /var/www/docs/;
+            try_files $uri $uri/ $uri/index.html =404;
+            index index.html;
+        }
+
+        # Web Terminal (Butterfly Python) - Redirect to Butterfly server
+        location /terminal {
+            return 301 http://localhost:7681;
+        }
+
+        # Error handler for Polygon.io service
+        location @polygonio_error {
+            internal;
+            add_header Content-Type application/json always;
+            add_header X-Correlation-ID $http_x_correlation_id always;
+            
+            if ($upstream_status = 502) {
+                return 502 '{"error":{"type":"BadGateway","status":502,"message":"Polygon.io service is temporarily unavailable","source":"intermediary","correlation_id":"$http_x_correlation_id","retry_after":30}}';
+            }
+            if ($upstream_status = 503) {
+                return 503 '{"error":{"type":"ServiceUnavailable","status":503,"message":"Polygon.io service is overloaded","source":"intermediary","correlation_id":"$http_x_correlation_id","retry_after":60}}';
+            }
+            if ($upstream_status = 504) {
+                return 504 '{"error":{"type":"GatewayTimeout","status":504,"message":"Polygon.io service request timed out","source":"intermediary","correlation_id":"$http_x_correlation_id","retry_after":30}}';
+            }
+            
+            return 500 '{"error":{"type":"InternalServerError","status":500,"message":"An unexpected error occurred","source":"intermediary","correlation_id":"$http_x_correlation_id"}}';
+        }
+
+        # Fallback to React for documentation routes that aren't files
+        location @react_fallback {
+            proxy_pass http://react-app:3001;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # React App - handle SPA routing (must be last)
+        location / {
+            proxy_pass http://react-app:3001/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_read_timeout 86400;
+        }
+    }
+
+    # Server configuration for HOST_LAN_IP
+    server {
+        listen 80;
+        server_name ${HOST_LAN_IP};
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval'" always;
+        
+        # Timezone headers for UI timezone detection
+        add_header X-Default-Timezone "America/Chicago" always;
+
+        # Error pages
+        error_page 404 /404.html;
+        error_page 500 502 503 504 /50x.html;
+
+        location = /404.html {
+            return 404 '404 Not Found';
+            add_header Content-Type text/plain;
+        }
+
+        location = /50x.html {
+            return 500 '500 Internal Server Error';
+            add_header Content-Type text/plain;
+        }
+
+        # CSS files - Adminer custom CSS
+        location /adminer-custom.css {
+            alias /var/www/css/adminer-custom.css;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Content-Type "text/css";
+        }
+
+        # API endpoints - General API endpoints - Proxy to kafka-api service
+        location /api/ {
+            proxy_pass http://kafka-api:8000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 60s;
+            proxy_connect_timeout 10s;
+        }
+
+        # API endpoints - Docker API endpoints - Proxy to docker-api service
+        location /api/docker/ {
+            proxy_pass http://docker-api/api/docker/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 120s;  # Longer timeout for build operations
+            proxy_connect_timeout 10s;
+        }
+
+        # API endpoints - Kafka Topics API - Proxy to kafka-api service
+        location /api/kafka-topics/ {
+            proxy_pass http://kafka-api:8000/api/kafka-topics/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 60s;
+            proxy_connect_timeout 10s;
+        }
+
+        # API endpoints - Stock Services API - Proxy to kafka-api service
+        location /api/stock-services {
+            proxy_pass http://kafka-api:8000/api/stock-services;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Content-Type";
+            proxy_read_timeout 60s;
+            proxy_connect_timeout 10s;
+        }
+
+        # cAdvisor - Proxy to internal service
+        location /cadvisor {
+            proxy_pass http://cadvisor/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # CSS files - Static file serving for custom CSS files
+        location /css/ {
+            alias /var/www/css/;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Access-Control-Allow-Origin "*";
+            add_header Content-Type "text/css";
+        }
+
+        # Grafana - proxy under /grafana
+	location /grafana/ {
+    	    # /grafana/login -> /login
+ 	    proxy_pass http://grafana/;
+
+	    # Forward headers (do not rewrite ports yourself, let root_url handle it)
+	    proxy_set_header Host $host;
+	    proxy_set_header X-Real-IP        $remote_addr;
+	    proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Forwarded-Proto $scheme;
+	    proxy_set_header X-Forwarded-Host  $host;
+	    proxy_set_header X-Forwarded-Prefix /grafana;
+
+	    proxy_http_version 1.1;
+	    proxy_set_header Upgrade    $http_upgrade;
+	    proxy_set_header Connection $connection_upgrade;
+
+	    # Optional CSS injection only
+	    sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/grafana-custom.css"></head>';
+	    sub_filter_once on;
+	}
+
+        # Grafana health check endpoint
+        location /grafana/api/health {
+            proxy_pass http://grafana/api/health;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Health check
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        # React routing - handle health-dashboard and internal React routes
+        location ~ ^/(health-dashboard)(/.*)?$ {
+            proxy_pass http://react-app:3001;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # Icons - Static file serving for icons
+        location /icons/ {
+            alias /var/www/icons/;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Access-Control-Allow-Origin "*";
+        }
+
+        # Kafka - Proxy to internal service
+        location /kafka {
+            proxy_pass http://kafka/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Kafka UI - completely new simple approach
+        location ~ ^/kafka($|/.*) {
+            # Strip /kafka prefix and pass everything else
+            rewrite ^/kafka/?(.*)$ /$1 break;
+            
+            proxy_pass http://kafka-ui;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /kafka;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Inject our custom CSS into Kafka UI pages
+            sub_filter_types text/html application/javascript text/css;
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/kafka-custom.css"></head>';
+            
+            # Rewrite asset paths in HTML
+            sub_filter 'window.basePath = \'\';' 'window.basePath = \'/kafka\';';
+            sub_filter '="/assets/' '="/kafka/assets/';
+            sub_filter "url('/fonts/" "url('/kafka/fonts/";
+            
+            sub_filter_once off;
+        }
+
+        # CSS files - Kafka custom CSS
+        location /kafka-custom.css {
+            alias /var/www/css/kafka-custom.css;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Content-Type "text/css";
+        }
+
+        # Loki - Proxy to internal service
+        location /loki {
+            proxy_pass http://loki/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Loki API and UI for log queries
+        # Loki Admin UI - serve custom themed status page
+        location = /loki {
+            root /var/www/html;
+            try_files /loki.html =404;
+            add_header 'Cache-Control' 'no-cache, no-store, must-revalidate';
+            add_header 'Pragma' 'no-cache';
+            add_header 'Expires' '0';
+        }
+        
+        location ~ ^/loki($|/.*) {
+            # Strip /loki prefix and pass everything else
+            rewrite ^/loki/?(.*)$ /$1 break;
+            
+            proxy_pass http://loki;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /loki;
+        }
+
+        # MySQL Database Admin UI - Simple proxy to Adminer with CSS injection
+        location ~ ^/mysql($|/.*) {
+            # Strip /mysql prefix and pass everything else
+            rewrite ^/mysql/?(.*)$ /$1 break;
+            
+            proxy_pass http://dbadmin;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /mysql;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Inject our custom CSS into Adminer pages
+            sub_filter_types text/html application/javascript text/css;
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/adminer-custom.css"></head>';
+            
+            # Rewrite asset paths in HTML for Adminer
+            sub_filter '="/' '="/mysql/';
+            sub_filter "url('/" "url('/mysql/";
+            sub_filter 'href="/' 'href="/mysql/';
+            sub_filter 'src="/' 'src="/mysql/';
+            sub_filter_once off;
+        }
+
+        # MySQL Exporter - Proxy to internal service
+        location /mysql-exporter {
+            proxy_pass http://mysql-exporter/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Node Exporter - Proxy to internal service
+        location /node-exporter {
+            proxy_pass http://node-exporter/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Polygon.io Service - Proxy to internal service with comprehensive error handling
+        location ~ ^/polygonio($|/.*) {
+            # Strip /polygonio prefix and pass everything else
+            rewrite ^/polygonio/?(.*)$ /$1 break;
+            
+            proxy_pass http://polygonio;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /polygonio;
+            
+            # Pass correlation ID and request timing headers
+            proxy_set_header X-Correlation-ID $http_x_correlation_id;
+            proxy_set_header X-Request-Start $msec;
+            proxy_set_header X-Service "polygonio";
+            
+            # Proxy timeouts and buffer settings
+            proxy_connect_timeout 10s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering on;
+            proxy_buffer_size 4k;
+            proxy_buffers 8 4k;
+            proxy_busy_buffers_size 8k;
+            
+            # Error handling - map upstream errors
+            proxy_intercept_errors on;
+            error_page 502 503 504 = @polygonio_error;
+            
+            # CORS headers for API access
+            add_header Access-Control-Allow-Origin "*" always;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Content-Type, X-Correlation-ID" always;
+            
+            # Handle preflight requests
+            if ($request_method = 'OPTIONS') {
+                add_header Access-Control-Allow-Origin "*";
+                add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+                add_header Access-Control-Allow-Headers "Content-Type, X-Correlation-ID";
+                add_header Access-Control-Max-Age 86400;
+                add_header Content-Length 0;
+                add_header Content-Type text/plain;
+                return 204;
+            }
+        }
+
+        # Prometheus Monitoring Interface
+        location ~ ^/prometheus($|/.*) {
+            # Strip /prometheus prefix and pass everything else
+            rewrite ^/prometheus/?(.*)$ /$1 break;
+            
+            proxy_pass http://prometheus;
+            # Rewrite Prometheus redirects to include /prometheus prefix
+            proxy_redirect http://$host/ http://$host/prometheus/;
+            proxy_redirect http://$host/query http://$host/prometheus/query;
+            proxy_redirect http://$host/graph http://$host/prometheus/graph;
+            proxy_redirect http://localhost/ http://$host/prometheus/;
+            proxy_redirect http://localhost:9090/ http://$host/prometheus/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Prefix /prometheus;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Inject our custom CSS into Prometheus pages
+            sub_filter_types text/html application/javascript text/css application/json;
+            sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/css/prometheus-custom.css"></head>';
+            
+            # Rewrite asset paths in HTML for Prometheus
+            sub_filter '="/' '="/prometheus/';
+            sub_filter "url('/" "url('/prometheus/";
+            sub_filter 'href="/' 'href="/prometheus/';
+            sub_filter 'src="/' 'src="/prometheus/';
+            sub_filter '"url":"/' '"url":"/prometheus/';
+            # Also rewrite redirects in JavaScript/JSON responses
+            sub_filter 'location.href="/' 'location.href="/prometheus/';
+            sub_filter 'window.location="/' 'window.location="/prometheus/';
+            sub_filter '"/query"' '"/prometheus/query"';
+            sub_filter '"/graph"' '"/prometheus/graph"';
+            sub_filter_once off;
+        }
+
+        # CSS files - Prometheus custom CSS
+        location /prometheus-custom.css {
+            alias /var/www/css/prometheus-custom.css;
+            expires 7d;
+            add_header Cache-Control "public";
+            add_header Content-Type "text/css";
+        }
+
+        # Promtail - Proxy to internal service
+        location /promtail {
+            proxy_pass http://promtail/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Promtail Admin UI
+        location ~ ^/promtail($|/.*) {
+            # Strip /promtail prefix and pass everything else
+            rewrite ^/promtail/?(.*)$ /$1 break;
+            
+            proxy_pass http://promtail;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /promtail;
+            
+            # Disable compression for sub_filter
+            proxy_set_header Accept-Encoding "";
+            
+            # Rewrite asset paths in HTML for Promtail
+            sub_filter_types text/html application/javascript text/css;
+            sub_filter '="/' '="/promtail/';
+            sub_filter "href='/" "href='/promtail/";
+            sub_filter 'src="/' 'src="/promtail/';
+            sub_filter_once off;
+        }
+
+        # Static documentation files (docsify)
+        location /static-docs {
+            alias /var/www/docs/;
+            try_files $uri $uri/ $uri/index.html =404;
+            index index.html;
+        }
+
+        # Web Terminal (Butterfly Python) - Redirect to Butterfly server
+        location /terminal {
+            return 301 http://localhost:7681;
+        }
+
+        # Error handler for Polygon.io service
+        location @polygonio_error {
+            internal;
+            add_header Content-Type application/json always;
+            add_header X-Correlation-ID $http_x_correlation_id always;
+            
+            if ($upstream_status = 502) {
+                return 502 '{"error":{"type":"BadGateway","status":502,"message":"Polygon.io service is temporarily unavailable","source":"intermediary","correlation_id":"$http_x_correlation_id","retry_after":30}}';
+            }
+            if ($upstream_status = 503) {
+                return 503 '{"error":{"type":"ServiceUnavailable","status":503,"message":"Polygon.io service is overloaded","source":"intermediary","correlation_id":"$http_x_correlation_id","retry_after":60}}';
+            }
+            if ($upstream_status = 504) {
+                return 504 '{"error":{"type":"GatewayTimeout","status":504,"message":"Polygon.io service request timed out","source":"intermediary","correlation_id":"$http_x_correlation_id","retry_after":30}}';
+            }
+            
+            return 500 '{"error":{"type":"InternalServerError","status":500,"message":"An unexpected error occurred","source":"intermediary","correlation_id":"$http_x_correlation_id"}}';
+        }
+
+        # Fallback to React for documentation routes that aren't files
+        location @react_fallback {
+            proxy_pass http://react-app:3001;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # React App - handle SPA routing (must be last)
+        location / {
+            proxy_pass http://react-app:3001/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_read_timeout 86400;
+        }
+    }
+}

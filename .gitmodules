@@ -1,3 +1,4 @@
 [submodule "standards"]
 	path = standards
 	url = git@github.com:phahn7285/standards.git
+	branch = main

@@ -21,24 +21,9 @@ case "$SERVICE" in
         cd ../.. && docker compose up -d dbadmin
         RESULT=$?
         ;;
-    "cadvisor")
-        log_action "Starting cAdvisor container"
-        cd ../.. && docker compose up -d cadvisor
-        RESULT=$?
-        ;;
-    "grafana")
-        log_action "Starting Grafana container"
-        cd ../.. && docker compose up -d grafana
-        RESULT=$?
-        ;;
     "kafka")
         log_action "Starting Kafka container"
         cd ../.. && docker compose up -d kafka
-        RESULT=$?
-        ;;
-    "loki")
-        log_action "Starting Loki container"
-        cd ../.. && docker compose up -d loki
         RESULT=$?
         ;;
     "mysql")
@@ -46,29 +31,9 @@ case "$SERVICE" in
         cd ../.. && docker compose up -d mysql
         RESULT=$?
         ;;
-    "mysql-exporter")
-        log_action "Starting MySQL Exporter container"
-        cd ../.. && docker compose up -d mysql-exporter
-        RESULT=$?
-        ;;
     "nginx")
         log_action "Starting Nginx container"
         cd ../.. && docker compose up -d nginx
-        RESULT=$?
-        ;;
-    "node-exporter")
-        log_action "Starting Node Exporter container"
-        cd ../.. && docker compose up -d node-exporter
-        RESULT=$?
-        ;;
-    "prometheus")
-        log_action "Starting Prometheus container"
-        cd ../.. && docker compose up -d prometheus
-        RESULT=$?
-        ;;
-    "promtail")
-        log_action "Starting Promtail container"
-        cd ../.. && docker compose up -d promtail
         RESULT=$?
         ;;
     "docker")

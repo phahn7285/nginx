@@ -21,24 +21,9 @@ case "$SERVICE" in
         cd ../.. && docker compose stop dbadmin
         RESULT=$?
         ;;
-    "cadvisor")
-        log_action "Stopping cAdvisor container"
-        cd ../.. && docker compose stop cadvisor
-        RESULT=$?
-        ;;
-    "grafana")
-        log_action "Stopping Grafana container"
-        cd ../.. && docker compose stop grafana
-        RESULT=$?
-        ;;
     "kafka")
         log_action "Stopping Kafka container"
         cd ../.. && docker compose stop kafka
-        RESULT=$?
-        ;;
-    "loki")
-        log_action "Stopping Loki container"
-        cd ../.. && docker compose stop loki
         RESULT=$?
         ;;
     "mysql")
@@ -46,29 +31,9 @@ case "$SERVICE" in
         cd ../.. && docker compose stop mysql
         RESULT=$?
         ;;
-    "mysql-exporter")
-        log_action "Stopping MySQL Exporter container"
-        cd ../.. && docker compose stop mysql-exporter
-        RESULT=$?
-        ;;
     "nginx")
         log_action "Stopping Nginx container"
         cd ../.. && docker compose stop nginx
-        RESULT=$?
-        ;;
-    "node-exporter")
-        log_action "Stopping Node Exporter container"
-        cd ../.. && docker compose stop node-exporter
-        RESULT=$?
-        ;;
-    "prometheus")
-        log_action "Stopping Prometheus container"
-        cd ../.. && docker compose stop prometheus
-        RESULT=$?
-        ;;
-    "promtail")
-        log_action "Stopping Promtail container"
-        cd ../.. && docker compose stop promtail
         RESULT=$?
         ;;
     "docker")

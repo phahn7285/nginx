@@ -21,24 +21,9 @@ case "$SERVICE" in
         cd ../.. && docker compose stop dbadmin && docker compose up -d dbadmin
         RESULT=$?
         ;;
-    "cadvisor")
-        log_action "Restarting cAdvisor container"
-        cd ../.. && docker compose stop cadvisor && docker compose up -d cadvisor
-        RESULT=$?
-        ;;
-    "grafana")
-        log_action "Restarting Grafana container"
-        cd ../.. && docker compose stop grafana && docker compose up -d grafana
-        RESULT=$?
-        ;;
     "kafka")
         log_action "Restarting Kafka container"
         cd ../.. && docker compose stop kafka && docker compose up -d kafka
-        RESULT=$?
-        ;;
-    "loki")
-        log_action "Restarting Loki container"
-        cd ../.. && docker compose stop loki && docker compose up -d loki
         RESULT=$?
         ;;
     "mysql")
@@ -46,29 +31,9 @@ case "$SERVICE" in
         cd ../.. && docker compose stop mysql && docker compose up -d mysql
         RESULT=$?
         ;;
-    "mysql-exporter")
-        log_action "Restarting MySQL Exporter container"
-        cd ../.. && docker compose stop mysql-exporter && docker compose up -d mysql-exporter
-        RESULT=$?
-        ;;
     "nginx")
         log_action "Restarting Nginx container"
         cd ../.. && docker compose stop nginx && docker compose up -d nginx
-        RESULT=$?
-        ;;
-    "node-exporter")
-        log_action "Restarting Node Exporter container"
-        cd ../.. && docker compose stop node-exporter && docker compose up -d node-exporter
-        RESULT=$?
-        ;;
-    "prometheus")
-        log_action "Restarting Prometheus container"
-        cd ../.. && docker compose stop prometheus && docker compose up -d prometheus
-        RESULT=$?
-        ;;
-    "promtail")
-        log_action "Restarting Promtail container"
-        cd ../.. && docker compose stop promtail && docker compose up -d promtail
         RESULT=$?
         ;;
     "docker")

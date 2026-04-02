@@ -19,6 +19,16 @@ services:
       - penny-net
     ports:
       - "5001:80"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O- http://127.0.0.1/health >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
   penny-net:

@@ -4,9 +4,12 @@ services:
     init: true
     restart: unless-stopped
     container_name: nginx
+    # Parent .env (e.g. /home/paul/.env): HOST_LAN_IP must reach the container without compose-time
+    # ${HOST_LAN_IP} interpolation (that uses the compose project dir only and was injecting empty).
+    env_file:
+      - ../.env
     environment:
       DNS_DOMAIN_NAME: ${DNS_DOMAIN_NAME:-localhost}
-      HOST_LAN_IP: ${HOST_LAN_IP}
     volumes:
       - ./nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
       - ../react/static/css:/var/www/css:ro

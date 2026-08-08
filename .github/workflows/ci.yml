@@ -1,0 +1,42 @@
+# Profile: Image/config — nginx
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  compose-config:
+    name: Compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate compose file
+        run: |
+          if [ -f docker-compose.yml ]; then
+            docker compose -f docker-compose.yml config --quiet
+          elif [ -f compose.yml ]; then
+            docker compose -f compose.yml config --quiet
+          else
+            echo "No compose file; skip"
+          fi
+      - name: Validate nginx.conf (envsubst + nginx -t)
+        run: |
+          cat > /tmp/validate-nginx.sh <<'SCRIPT'
+          set -e
+          envsubst '$DNS_DOMAIN_NAME $HOST_LAN_IP' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
+          nginx -t
+          SCRIPT
+          docker run --rm \
+            -e DNS_DOMAIN_NAME=localhost \
+            -e HOST_LAN_IP=127.0.0.1 \
+            -v "$PWD/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro" \
+            -v /tmp/validate-nginx.sh:/validate-nginx.sh:ro \
+            nginx:1.27-alpine \
+            /bin/sh /validate-nginx.sh
+
